@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discount Calculator Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>Discount Calculator Admin</h1>
+      <p>Manage ammendment thresholds and net new volume discounts used by the calculator.</p>
+      <p class="nav-link"><a href="index.html">Back to Calculator</a></p>
+    </header>
+
+    <section class="card" id="lock-section">
+      <h2>Admin Access</h2>
+      <p class="hint">Enter passcode to unlock admin controls.</p>
+      <form id="unlock-form" novalidate>
+        <div class="grid single-col">
+          <label>
+            Passcode
+            <input type="password" id="admin-passcode" required autocomplete="off" />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Unlock</button>
+        </div>
+      </form>
+      <div id="lock-errors" class="errors" role="alert" aria-live="polite"></div>
+    </section>
+
+    <section class="card hidden" id="admin-panel">
+      <h2>Discount Settings</h2>
+      <p class="hint">Manage ammendment thresholds and net new volume tiers used by the calculator.</p>
+      <div class="grid">
+        <label>
+          Net New List Price ($)
+          <input type="number" id="net-new-list-price" step="0.01" min="0" />
+        </label>
+      </div>
+
+      <h3>Ammendment Rules: Current PPL to Lowest Allowed Price</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Min Current PPL</th>
+              <th>Max Current PPL</th>
+              <th>Lowest Allowed Price</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="renewal-rules-body"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button type="button" id="add-renewal-rule-btn">Add Ammendment Rule</button>
+      </div>
+
+      <h3>Net New Rules: License Volume to Discount % (5 Tiers)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Min Licenses</th>
+              <th>Max Licenses</th>
+              <th>Discount %</th>
+            </tr>
+          </thead>
+          <tbody id="net-new-rules-body"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button type="button" id="save-settings-btn">Save Settings</button>
+        <button type="button" id="reset-settings-btn" class="secondary">Reset Default Settings</button>
+      </div>
+      <div id="settings-errors" class="errors" role="alert" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script src="config-store.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

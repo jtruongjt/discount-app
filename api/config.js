@@ -42,12 +42,13 @@ async function supabaseRequest(env, path, options = {}) {
 
 module.exports = async (req, res) => {
   const env = getSupabaseEnv();
-  if (!env) {
-    res.status(200).json({ config: DEFAULT_CONFIG, source: "default" });
-    return;
-  }
 
   if (req.method === "GET") {
+    if (!env) {
+      res.status(200).json({ config: DEFAULT_CONFIG, source: "default" });
+      return;
+    }
+
     const response = await supabaseRequest(
       env,
       `/rest/v1/app_config?app_id=eq.${APP_ID}&select=config`,
@@ -70,6 +71,11 @@ module.exports = async (req, res) => {
   }
 
   if (req.method === "PUT") {
+    if (!env) {
+      res.status(500).json({ error: "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured." });
+      return;
+    }
+
     const expectedPasscode = process.env.ADMIN_PASSCODE;
     if (!expectedPasscode) {
       res.status(500).json({ error: "ADMIN_PASSCODE is not configured." });

@@ -139,6 +139,11 @@ function updateDealTypeUI() {
   const isRenewal = dealTypeSelect.value === "renewal";
   currentPplInput.disabled = !isRenewal;
   currentLicensesInput.disabled = !isRenewal;
+
+  if (!isRenewal) {
+    currentPplInput.value = "";
+    currentLicensesInput.value = "";
+  }
 }
 
 dealTypeSelect.addEventListener("change", updateDealTypeUI);

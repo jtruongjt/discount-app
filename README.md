@@ -3,9 +3,9 @@
 A lightweight web app for sales reps to quickly see compliant discount options.
 
 ## Scenario support
-1. Ammendment: if current PPL is `<= 108`, lowest allowed price is configurable (default `175`).
-2. Ammendment: if current PPL is `109 - 131`, lowest allowed price is configurable (default `190`).
-3. Ammendment: if current PPL is `>= 132`, lowest allowed price is configurable (default `205`).
+1. Amendment: if current PPL is `<= 108`, lowest allowed price is configurable (default `175`).
+2. Amendment: if current PPL is `109 - 131`, lowest allowed price is configurable (default `190`).
+3. Amendment: if current PPL is `>= 132`, lowest allowed price is configurable (default `205`).
 4. Net New: pricing discount is based on license volume tiers (exactly 5 tiers).
 
 ## Pages
@@ -14,7 +14,7 @@ A lightweight web app for sales reps to quickly see compliant discount options.
 
 ## Admin settings model
 - Net New List Price.
-- Ammendment rules table:
+- Amendment rules table:
   - `Min Current PPL`
   - `Max Current PPL` (blank means open-ended)
   - `Lowest Allowed Price`
@@ -24,8 +24,8 @@ A lightweight web app for sales reps to quickly see compliant discount options.
   - `Discount %`
 
 ## Calculation behavior
-- Ammendment deals:
-  - Match current PPL to an ammendment rule.
+- Amendment deals:
+  - Match current PPL to an amendment rule.
   - Show a discount table in 5% increments from list price down to the rule floor.
 - Net New deals:
   - Match proposed licenses to a volume tier.
@@ -36,7 +36,7 @@ A lightweight web app for sales reps to quickly see compliant discount options.
 `IARR = new ARR - current ARR`
 
 Where:
-- `current ARR = current PPL * current licenses` for ammendments.
+- `current ARR = current PPL * current licenses` for amendments.
 - `current ARR = 0` for net new.
 - `new ARR = final PPL * proposed licenses`.
 

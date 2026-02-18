@@ -111,10 +111,10 @@ function validateInput(input) {
 
   if (input.dealType === "renewal") {
     if (!Number.isFinite(input.currentPpl) || input.currentPpl < 0) {
-      messages.push("Current contract PPL must be a non-negative number for ammendments.");
+      messages.push("Current contract PPL must be a non-negative number for amendments.");
     }
     if (!Number.isFinite(input.currentLicenses) || input.currentLicenses < 1) {
-      messages.push("Current licenses must be at least 1 for ammendments.");
+      messages.push("Current licenses must be at least 1 for amendments.");
     }
   }
 
@@ -124,7 +124,7 @@ function validateInput(input) {
 function validateConfig(config) {
   const messages = [];
   if (!Array.isArray(config.renewalRules) || config.renewalRules.length === 0) {
-    messages.push("Ammendment rules are missing.");
+    messages.push("Amendment rules are missing.");
   }
   if (!Array.isArray(config.netNewVolumeRules) || config.netNewVolumeRules.length !== 5) {
     messages.push("Net New volume rules are missing or do not have 5 tiers.");
@@ -175,7 +175,7 @@ form.addEventListener("submit", async (event) => {
   if (input.dealType === "renewal") {
     const rule = getRenewalRule(input.currentPpl, config.renewalRules);
     if (!rule) {
-      errors.textContent = "No ammendment rule matches this current PPL.";
+      errors.textContent = "No amendment rule matches this current PPL.";
       return;
     }
 
@@ -194,8 +194,8 @@ form.addEventListener("submit", async (event) => {
 
     renderDiscountTable(
       rows,
-      `Ammendment rule floor is ${money(floorPrice)}. Showing 5% discount steps from list price ${money(basePrice)}.`,
-      "No discount steps are compliant for this ammendment scenario."
+      `Amendment rule floor is ${money(floorPrice)}. Showing 5% discount steps from list price ${money(basePrice)}.`,
+      "No discount steps are compliant for this amendment scenario."
     );
     return;
   }

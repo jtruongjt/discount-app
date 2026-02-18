@@ -46,7 +46,7 @@ function buildDiscountRows(basePrice, maxDiscountPct, lowestAllowedPrice, curren
     const iarr = calcIarr(currentArr, newArr);
 
     if (iarr >= 0) {
-      rows.push({ discountPct: discount, finalPrice });
+      rows.push({ discountPct: discount, finalPrice, iarr });
     }
 
     discount += 5;
@@ -59,7 +59,7 @@ function buildDiscountRows(basePrice, maxDiscountPct, lowestAllowedPrice, curren
     const iarr = calcIarr(currentArr, newArr);
 
     if (finalPrice >= lowestAllowedPrice - 0.0001 && iarr >= 0) {
-      rows.push({ discountPct: cappedMaxDiscount, finalPrice });
+      rows.push({ discountPct: cappedMaxDiscount, finalPrice, iarr });
     }
   }
 
@@ -78,6 +78,7 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
       <td>${pct(row.discountPct)}</td>
       <td>${money(row.finalPrice)}</td>
       <td>${money(row.finalPrice / 12)}</td>
+      <td>${money(row.iarr)}</td>
     </tr>
   `).join("");
 
@@ -93,6 +94,7 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
               <th>% Discount</th>
               <th>Price After Discount</th>
               <th>PPL/Month</th>
+              <th>IARR</th>
             </tr>
           </thead>
           <tbody>${body}</tbody>

@@ -15,40 +15,44 @@
     </header>
 
     <section class="card">
-      <h2>Deal Inputs</h2>
+      <h2 id="deal-inputs-title">Amendment Inputs</h2>
       <form id="deal-form" novalidate>
         <div class="grid">
-          <label>
-            Deal Type
+          <label class="field">
+            <span>Deal Type</span>
             <select id="dealType">
               <option value="renewal">Amendment</option>
               <option value="net_new">Net New</option>
             </select>
+            <span class="field-error" id="dealType-error" aria-live="polite"></span>
           </label>
 
-          <label>
-            Current Contract PPL ($)
+          <label class="field renewal-only" id="current-ppl-field">
+            <span>Current Contract PPL ($/year)</span>
             <input type="number" id="currentPpl" step="0.01" min="0" required />
+            <span class="field-error" id="currentPpl-error" aria-live="polite"></span>
           </label>
 
-          <label>
-            Current Licenses
+          <label class="field renewal-only" id="current-licenses-field">
+            <span>Current Licenses</span>
             <input type="number" id="currentLicenses" step="1" min="1" required />
+            <span class="field-error" id="currentLicenses-error" aria-live="polite"></span>
           </label>
 
-          <label>
-            Proposed Licenses
+          <label class="field">
+            <span>Proposed Licenses</span>
             <input type="number" id="proposedLicenses" step="1" min="1" required />
+            <span class="field-error" id="proposedLicenses-error" aria-live="polite"></span>
           </label>
-
         </div>
+        <p class="deal-type-note" id="deal-type-help">Provide current contract PPL and current licenses to protect IARR for an amendment.</p>
 
         <div class="actions">
           <button type="submit">Calculate Options</button>
           <button type="button" id="reset-btn" class="secondary">Reset</button>
         </div>
       </form>
-      <p class="hint">IARR is calculated as: <code>new ARR - current ARR</code>. Amendment and Net New pricing rules are managed in Admin Settings.</p>
+      <p class="hint">IARR = <code>new ARR - current ARR</code>. Results show annual PPL plus a monthly equivalent for comparison.</p>
       <div id="errors" class="errors" role="alert" aria-live="polite"></div>
     </section>
 

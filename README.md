@@ -41,33 +41,48 @@ Where:
 - `new ARR = final PPL * proposed licenses`.
 
 ## Storage
-- Primary storage: Supabase table `public.app_config` (via Vercel API).
+- Primary storage: Neon Postgres table `public.app_config` (via Vercel API).
 - Fallback storage: localStorage key `discount_config_v2` when API is unavailable.
 
 ## Run locally
-1. Optional quick mode (no Supabase): open `index.html` in a browser.
+1. Optional quick mode (no Neon): open `index.html` in a browser.
 2. Full mode (with APIs):
+   - Install dependencies: `npm install`
    - Install Vercel CLI: `npm i -g vercel`
    - Create `.env.local` in project root:
-     - `SUPABASE_URL=...`
-     - `SUPABASE_SERVICE_ROLE_KEY=...`
+     - `DATABASE_URL=...`
      - `ADMIN_PASSCODE=...`
    - Start local Vercel dev server: `vercel dev`
    - Open `http://localhost:3000`
 
-## Supabase setup
-1. Create a Supabase project.
-2. Open SQL Editor and run `supabase/schema.sql`.
+## Neon setup
+1. Create a Neon project and copy its connection string.
+2. Run `neon/schema.sql` against your Neon database.
+3. Set `DATABASE_URL` to the Neon connection string in local and Vercel environments.
+
+## Move existing data
+1. In Supabase, export the `public.app_config` row for `app_id = 'discount-app'`.
+2. Insert that row into Neon after running the new schema, for example:
+
+```sql
+insert into public.app_config (app_id, config, updated_at)
+values ('discount-app', '{"netNewListPrice":225,"renewalRules":[],"netNewVolumeRules":[]}'::jsonb, now())
+on conflict (app_id)
+do update set
+  config = excluded.config,
+  updated_at = now();
+```
+
+3. Replace the example JSON above with the actual `config` payload exported from Supabase.
 
 ## Deploy to Vercel
 1. Push this repo to GitHub.
 2. In Vercel, import the repo as a new project.
 3. Add environment variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `DATABASE_URL`
    - `ADMIN_PASSCODE`
 4. Deploy.
 
 ## Notes
 - `admin.html` verifies passcode through `/api/admin-auth`.
-- Settings saves go through `/api/config` and are written to Supabase.
+- Settings saves go through `/api/config` and are written to Neon.

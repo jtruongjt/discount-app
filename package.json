@@ -1,0 +1,7 @@
+{
+  "name": "discount-app",
+  "private": true,
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1"
+  }
+}

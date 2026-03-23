@@ -16,63 +16,91 @@ const DEFAULT_CONFIG = {
   ]
 };
 
-function getSupabaseEnv() {
-  const url = process.env.SUPABASE_URL;
-  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+let neonModulePromise;
 
-  if (!url || !serviceRole) {
+function getDatabaseUrl() {
+  return process.env.DATABASE_URL || null;
+}
+
+async function getSqlClient() {
+  const databaseUrl = getDatabaseUrl();
+  if (!databaseUrl) {
     return null;
   }
 
-  return { url, serviceRole };
+  if (!neonModulePromise) {
+    neonModulePromise = import("@neondatabase/serverless");
+  }
+
+  const { neon } = await neonModulePromise;
+  return neon(databaseUrl);
 }
 
-async function supabaseRequest(env, path, options = {}) {
-  const headers = {
-    apikey: env.serviceRole,
-    Authorization: `Bearer ${env.serviceRole}`,
-    ...options.headers
-  };
+function parseBody(body) {
+  if (typeof body === "string") {
+    return JSON.parse(body || "{}");
+  }
 
-  return fetch(`${env.url}${path}`, {
-    ...options,
-    headers
-  });
+  return body || {};
 }
 
 module.exports = async (req, res) => {
-  const env = getSupabaseEnv();
+  const hasDatabaseConfig = Boolean(getDatabaseUrl());
+  let sql = null;
+
+  try {
+    sql = await getSqlClient();
+  } catch {
+    if (req.method === "GET") {
+      res.status(502).json({ error: "Unable to initialize Neon client." });
+      return;
+    }
+
+    if (req.method === "PUT") {
+      res.status(500).json({ error: "Unable to initialize Neon client." });
+      return;
+    }
+  }
 
   if (req.method === "GET") {
-    if (!env) {
+    if (hasDatabaseConfig && !sql) {
+      res.status(502).json({ error: "Unable to initialize Neon client." });
+      return;
+    }
+
+    if (!sql) {
       res.status(200).json({ config: DEFAULT_CONFIG, source: "default" });
       return;
     }
 
-    const response = await supabaseRequest(
-      env,
-      `/rest/v1/app_config?app_id=eq.${APP_ID}&select=config`,
-      { method: "GET" }
-    );
+    try {
+      const rows = await sql`
+        SELECT config
+        FROM app_config
+        WHERE app_id = ${APP_ID}
+        LIMIT 1
+      `;
 
-    if (!response.ok) {
-      res.status(502).json({ error: "Unable to read config from Supabase." });
-      return;
+      if (!Array.isArray(rows) || rows.length === 0) {
+        res.status(200).json({ config: DEFAULT_CONFIG, source: "default" });
+        return;
+      }
+
+      res.status(200).json({ config: rows[0].config, source: "neon" });
+    } catch {
+      res.status(502).json({ error: "Unable to read config from Neon." });
     }
-
-    const rows = await response.json();
-    if (!Array.isArray(rows) || rows.length === 0) {
-      res.status(200).json({ config: DEFAULT_CONFIG, source: "default" });
-      return;
-    }
-
-    res.status(200).json({ config: rows[0].config, source: "supabase" });
     return;
   }
 
   if (req.method === "PUT") {
-    if (!env) {
-      res.status(500).json({ error: "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured." });
+    if (hasDatabaseConfig && !sql) {
+      res.status(500).json({ error: "Unable to initialize Neon client." });
+      return;
+    }
+
+    if (!sql) {
+      res.status(500).json({ error: "DATABASE_URL must be configured." });
       return;
     }
 
@@ -88,35 +116,36 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+    let body;
+    try {
+      body = parseBody(req.body);
+    } catch {
+      res.status(400).json({ error: "Request body must be valid JSON." });
+      return;
+    }
+
     if (!body.config || typeof body.config !== "object") {
       res.status(400).json({ error: "Missing config payload." });
       return;
     }
 
-    const response = await supabaseRequest(env, "/rest/v1/app_config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=representation"
-      },
-      body: JSON.stringify([
-        {
-          app_id: APP_ID,
-          config: body.config
-        }
-      ])
-    });
+    try {
+      const rows = await sql`
+        INSERT INTO app_config (app_id, config, updated_at)
+        VALUES (${APP_ID}, ${JSON.stringify(body.config)}::jsonb, NOW())
+        ON CONFLICT (app_id)
+        DO UPDATE SET
+          config = EXCLUDED.config,
+          updated_at = NOW()
+        RETURNING config
+      `;
 
-    if (!response.ok) {
-      const detail = await response.text();
-      res.status(502).json({ error: "Unable to write config to Supabase.", detail });
-      return;
+      const saved = Array.isArray(rows) && rows[0] ? rows[0].config : body.config;
+      res.status(200).json({ config: saved, source: "neon" });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      res.status(502).json({ error: "Unable to write config to Neon.", detail });
     }
-
-    const rows = await response.json();
-    const saved = Array.isArray(rows) && rows[0] ? rows[0].config : body.config;
-    res.status(200).json({ config: saved, source: "supabase" });
     return;
   }
 

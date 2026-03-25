@@ -59,11 +59,11 @@ function buildDiscountRows(basePrice, maxDiscountPct, lowestAllowedPrice, curren
     const finalPrice = basePrice * (1 - discount / 100);
     if (finalPrice < lowestAllowedPrice - 0.0001) break;
 
-    const newArr = finalPrice * proposedLicenses;
-    const iarr = calcIarr(currentArr, newArr);
+    const totalArr = finalPrice * proposedLicenses;
+    const iarr = calcIarr(currentArr, totalArr);
 
     if (iarr >= 0) {
-      rows.push({ discountPct: discount, finalPrice, iarr });
+      rows.push({ discountPct: discount, finalPrice, totalArr, iarr });
     }
 
     discount += 5;
@@ -72,11 +72,11 @@ function buildDiscountRows(basePrice, maxDiscountPct, lowestAllowedPrice, curren
   const isExactMultipleOfFive = Math.abs(cappedMaxDiscount % 5) < 0.0001;
   if (!isExactMultipleOfFive) {
     const finalPrice = basePrice * (1 - cappedMaxDiscount / 100);
-    const newArr = finalPrice * proposedLicenses;
-    const iarr = calcIarr(currentArr, newArr);
+    const totalArr = finalPrice * proposedLicenses;
+    const iarr = calcIarr(currentArr, totalArr);
 
     if (finalPrice >= lowestAllowedPrice - 0.0001 && iarr >= 0) {
-      rows.push({ discountPct: cappedMaxDiscount, finalPrice, iarr });
+      rows.push({ discountPct: cappedMaxDiscount, finalPrice, totalArr, iarr });
     }
   }
 
@@ -122,6 +122,7 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
       <td>${pct(row.discountPct)}</td>
       <td>${money(row.finalPrice)}</td>
       <td>${money(row.finalPrice / 12)}</td>
+      <td>${money(row.totalArr)}</td>
       <td>${money(row.iarr)}</td>
     </tr>
   `).join("");
@@ -145,6 +146,10 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
           <span class="summary-stat-value">${money(recommendedRow.finalPrice / 12)}</span>
         </div>
         <div class="summary-stat">
+          <span class="summary-stat-label">Total ARR</span>
+          <span class="summary-stat-value">${money(recommendedRow.totalArr)}</span>
+        </div>
+        <div class="summary-stat">
           <span class="summary-stat-label">IARR</span>
           <span class="summary-stat-value">${money(recommendedRow.iarr)}</span>
         </div>
@@ -160,6 +165,7 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
               <th>% Discount</th>
               <th>Annual PPL</th>
               <th>PPL/Month</th>
+              <th>Total ARR</th>
               <th>IARR</th>
             </tr>
           </thead>

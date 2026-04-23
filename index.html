@@ -27,25 +27,34 @@
             <span class="field-error" id="dealType-error" aria-live="polite"></span>
           </label>
 
-          <label class="field renewal-only" id="current-ppl-field">
-            <span>Current Contract PPL ($/year)</span>
-            <input type="number" id="currentPpl" step="0.01" min="0" required />
-            <span class="field-error" id="currentPpl-error" aria-live="polite"></span>
-          </label>
-
-          <label class="field renewal-only" id="current-licenses-field">
-            <span>Current Licenses</span>
-            <input type="number" id="currentLicenses" step="1" min="1" required />
-            <span class="field-error" id="currentLicenses-error" aria-live="polite"></span>
-          </label>
-
           <label class="field">
             <span>Proposed Licenses</span>
             <input type="number" id="proposedLicenses" step="1" min="1" required />
             <span class="field-error" id="proposedLicenses-error" aria-live="polite"></span>
           </label>
         </div>
-        <p class="deal-type-note" id="deal-type-help">Provide current contract PPL and current licenses to protect IARR for an amendment.</p>
+        <div class="subscription-section renewal-only" id="current-subscriptions-field">
+          <div class="subscription-heading">
+            <h3>Current Subscriptions</h3>
+            <button type="button" id="add-subscription-btn" class="secondary">Add Subscription</button>
+          </div>
+          <div id="current-subscriptions" class="subscription-list">
+            <div class="subscription-row" data-subscription-row>
+              <label class="field">
+                <span>Current Contract PPL ($/year)</span>
+                <input type="number" id="currentPpl" data-current-ppl step="0.01" min="0" required />
+                <span class="field-error" data-current-ppl-error aria-live="polite"></span>
+              </label>
+              <label class="field">
+                <span>Current Licenses</span>
+                <input type="number" id="currentLicenses" data-current-licenses step="1" min="1" required />
+                <span class="field-error" data-current-licenses-error aria-live="polite"></span>
+              </label>
+              <button type="button" class="subscription-remove secondary" data-remove-subscription hidden>Remove</button>
+            </div>
+          </div>
+        </div>
+        <p class="deal-type-note" id="deal-type-help">Provide all current subscriptions to protect IARR for an amendment.</p>
 
         <div class="actions">
           <button type="submit">Calculate Options</button>

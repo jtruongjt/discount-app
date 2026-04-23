@@ -116,6 +116,42 @@ select.input-invalid {
   font-size: 0.92rem;
 }
 
+.subscription-section {
+  margin-top: 16px;
+}
+
+.subscription-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.subscription-heading h3 {
+  margin: 0;
+}
+
+.subscription-list {
+  display: grid;
+  gap: 12px;
+}
+
+.subscription-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr)) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafdff;
+}
+
+.subscription-remove {
+  align-self: center;
+}
+
 h3 {
   margin-top: 18px;
   margin-bottom: 8px;
@@ -278,5 +314,7 @@ td input {
 @media (max-width: 600px) {
   .container { padding: 14px; }
   .hero h1 { font-size: 1.5rem; }
+  .subscription-heading { align-items: stretch; flex-direction: column; }
+  .subscription-row { grid-template-columns: 1fr; }
   .actions button { width: 100%; }
 }

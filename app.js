@@ -2,10 +2,9 @@ const form = document.getElementById("deal-form");
 const dealInputsTitle = document.getElementById("deal-inputs-title");
 const dealTypeSelect = document.getElementById("dealType");
 const dealTypeHelp = document.getElementById("deal-type-help");
-const currentPplField = document.getElementById("current-ppl-field");
-const currentLicensesField = document.getElementById("current-licenses-field");
-const currentPplInput = document.getElementById("currentPpl");
-const currentLicensesInput = document.getElementById("currentLicenses");
+const currentSubscriptionsField = document.getElementById("current-subscriptions-field");
+const currentSubscriptionsList = document.getElementById("current-subscriptions");
+const addSubscriptionBtn = document.getElementById("add-subscription-btn");
 const proposedLicensesInput = document.getElementById("proposedLicenses");
 const results = document.getElementById("results");
 const errors = document.getElementById("errors");
@@ -13,14 +12,10 @@ const resetBtn = document.getElementById("reset-btn");
 const submitBtn = form.querySelector('button[type="submit"]');
 
 const fieldInputs = {
-  currentPpl: currentPplInput,
-  currentLicenses: currentLicensesInput,
   proposedLicenses: proposedLicensesInput
 };
 
 const fieldErrorEls = {
-  currentPpl: document.getElementById("currentPpl-error"),
-  currentLicenses: document.getElementById("currentLicenses-error"),
   proposedLicenses: document.getElementById("proposedLicenses-error")
 };
 
@@ -41,6 +36,55 @@ function getRenewalRule(currentPpl, rules) {
     const max = rule.maxCurrentPpl === null ? Number.POSITIVE_INFINITY : Number(rule.maxCurrentPpl);
     return currentPpl >= Number(rule.minCurrentPpl) && currentPpl <= max;
   });
+}
+
+function getSubscriptionRows() {
+  return Array.from(currentSubscriptionsList.querySelectorAll("[data-subscription-row]"));
+}
+
+function getCurrentSubscriptions() {
+  return getSubscriptionRows().map((row) => ({
+    row,
+    currentPpl: Number(row.querySelector("[data-current-ppl]").value),
+    currentLicenses: Number(row.querySelector("[data-current-licenses]").value)
+  }));
+}
+
+function setSubscriptionError(row, key, message) {
+  const input = row.querySelector(key === "currentPpl" ? "[data-current-ppl]" : "[data-current-licenses]");
+  const errorEl = row.querySelector(key === "currentPpl" ? "[data-current-ppl-error]" : "[data-current-licenses-error]");
+  input.classList.add("input-invalid");
+  input.setAttribute("aria-invalid", "true");
+  errorEl.textContent = message;
+}
+
+function updateRemoveButtons() {
+  const rows = getSubscriptionRows();
+  rows.forEach((row) => {
+    row.querySelector("[data-remove-subscription]").hidden = rows.length === 1;
+  });
+}
+
+function createSubscriptionRow() {
+  const row = document.createElement("div");
+  row.className = "subscription-row";
+  row.dataset.subscriptionRow = "";
+  row.innerHTML = `
+    <label class="field">
+      <span>Current Contract PPL ($/year)</span>
+      <input type="number" data-current-ppl step="0.01" min="0" required />
+      <span class="field-error" data-current-ppl-error aria-live="polite"></span>
+    </label>
+    <label class="field">
+      <span>Current Licenses</span>
+      <input type="number" data-current-licenses step="1" min="1" required />
+      <span class="field-error" data-current-licenses-error aria-live="polite"></span>
+    </label>
+    <button type="button" class="subscription-remove secondary" data-remove-subscription>Remove</button>
+  `;
+  currentSubscriptionsList.appendChild(row);
+  updateRemoveButtons();
+  return row;
 }
 
 function getVolumeRule(licenses, rules) {
@@ -88,6 +132,13 @@ function clearFieldErrors() {
     input.classList.remove("input-invalid");
     input.removeAttribute("aria-invalid");
     fieldErrorEls[key].textContent = "";
+  });
+  currentSubscriptionsList.querySelectorAll("input").forEach((input) => {
+    input.classList.remove("input-invalid");
+    input.removeAttribute("aria-invalid");
+  });
+  currentSubscriptionsList.querySelectorAll(".field-error").forEach((errorEl) => {
+    errorEl.textContent = "";
   });
 }
 
@@ -178,21 +229,26 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
 
 function validateInput(input) {
   const fieldErrors = {};
+  let hasSubscriptionErrors = false;
 
   if (!Number.isFinite(input.proposedLicenses) || input.proposedLicenses < 1) {
     fieldErrors.proposedLicenses = "Enter a proposed license count of at least 1.";
   }
 
   if (input.dealType === "renewal") {
-    if (!Number.isFinite(input.currentPpl) || input.currentPpl < 0) {
-      fieldErrors.currentPpl = "Enter a non-negative current contract PPL for amendments.";
-    }
-    if (!Number.isFinite(input.currentLicenses) || input.currentLicenses < 1) {
-      fieldErrors.currentLicenses = "Enter current licenses of at least 1 for amendments.";
-    }
+    input.currentSubscriptions.forEach((subscription) => {
+      if (!Number.isFinite(subscription.currentPpl) || subscription.currentPpl < 0) {
+        setSubscriptionError(subscription.row, "currentPpl", "Enter a non-negative current contract PPL.");
+        hasSubscriptionErrors = true;
+      }
+      if (!Number.isFinite(subscription.currentLicenses) || subscription.currentLicenses < 1) {
+        setSubscriptionError(subscription.row, "currentLicenses", "Enter current licenses of at least 1.");
+        hasSubscriptionErrors = true;
+      }
+    });
   }
 
-  return fieldErrors;
+  return { fieldErrors, hasSubscriptionErrors };
 }
 
 function validateConfig(config) {
@@ -213,23 +269,37 @@ function updateDealTypeUI() {
   const isRenewal = dealTypeSelect.value === "renewal";
   dealInputsTitle.textContent = isRenewal ? "Amendment Inputs" : "Net New Inputs";
   dealTypeHelp.textContent = isRenewal
-    ? "Provide current contract PPL and current licenses to protect IARR for an amendment."
+    ? "Provide all current subscriptions to protect IARR for an amendment."
     : "Net New pricing uses proposed licenses only. Amendment-only fields are hidden.";
-  currentPplField.classList.toggle("hidden", !isRenewal);
-  currentLicensesField.classList.toggle("hidden", !isRenewal);
-  currentPplInput.disabled = !isRenewal;
-  currentLicensesInput.disabled = !isRenewal;
-  currentPplInput.required = isRenewal;
-  currentLicensesInput.required = isRenewal;
+  currentSubscriptionsField.classList.toggle("hidden", !isRenewal);
+  currentSubscriptionsList.querySelectorAll("input").forEach((input) => {
+    input.disabled = !isRenewal;
+    input.required = isRenewal;
+  });
+  addSubscriptionBtn.disabled = !isRenewal;
 
   if (!isRenewal) {
-    currentPplInput.value = "";
-    currentLicensesInput.value = "";
     clearFieldErrors();
   }
 }
 
 dealTypeSelect.addEventListener("change", updateDealTypeUI);
+form.addEventListener("input", () => {
+  errors.textContent = "";
+  clearFieldErrors();
+});
+addSubscriptionBtn.addEventListener("click", () => {
+  createSubscriptionRow().querySelector("[data-current-ppl]").focus();
+});
+currentSubscriptionsList.addEventListener("click", (event) => {
+  const removeBtn = event.target.closest("[data-remove-subscription]");
+  if (!removeBtn) return;
+
+  removeBtn.closest("[data-subscription-row]").remove();
+  updateRemoveButtons();
+  errors.textContent = "";
+  clearFieldErrors();
+});
 Object.values(fieldInputs).forEach((input) => {
   input.addEventListener("input", () => {
     errors.textContent = "";
@@ -244,14 +314,13 @@ form.addEventListener("submit", async (event) => {
 
   const input = {
     dealType: dealTypeSelect.value,
-    currentPpl: Number(currentPplInput.value),
-    currentLicenses: Number(currentLicensesInput.value),
+    currentSubscriptions: getCurrentSubscriptions(),
     proposedLicenses: Number(proposedLicensesInput.value)
   };
 
   const inputErrors = validateInput(input);
-  if (Object.keys(inputErrors).length > 0) {
-    applyFieldErrors(inputErrors);
+  if (Object.keys(inputErrors.fieldErrors).length > 0 || inputErrors.hasSubscriptionErrors) {
+    applyFieldErrors(inputErrors.fieldErrors);
     errors.textContent = "Fix the highlighted fields and recalculate.";
     return;
   }
@@ -266,16 +335,18 @@ form.addEventListener("submit", async (event) => {
     }
 
     if (input.dealType === "renewal") {
-      const rule = getRenewalRule(input.currentPpl, config.renewalRules);
-      if (!rule) {
-        errors.textContent = "No amendment rule matches this current PPL.";
+      const matchedRules = input.currentSubscriptions.map((subscription) => getRenewalRule(subscription.currentPpl, config.renewalRules));
+      if (matchedRules.some((rule) => !rule)) {
+        errors.textContent = "No amendment rule matches one or more current subscription PPL values.";
         return;
       }
 
       const basePrice = Number(config.netNewListPrice);
-      const floorPrice = Number(rule.lowestAllowedPrice);
+      const floorPrice = Math.max(...matchedRules.map((rule) => Number(rule.lowestAllowedPrice)));
       const maxDiscountByFloor = (1 - (floorPrice / basePrice)) * 100;
-      const currentArr = input.currentPpl * input.currentLicenses;
+      const currentArr = input.currentSubscriptions.reduce((total, subscription) => (
+        total + subscription.currentPpl * subscription.currentLicenses
+      ), 0);
 
       const rows = buildDiscountRows(
         basePrice,
@@ -287,7 +358,7 @@ form.addEventListener("submit", async (event) => {
 
       renderDiscountTable(
         rows,
-        `Amendment rule floor is ${money(floorPrice)} against list price ${money(basePrice)}.`,
+        `Current ARR is ${money(currentArr)} across ${input.currentSubscriptions.length} subscription${input.currentSubscriptions.length === 1 ? "" : "s"}. Amendment rule floor is ${money(floorPrice)} against list price ${money(basePrice)}.`,
         "No discount steps are compliant for this amendment scenario."
       );
       return;
@@ -325,6 +396,8 @@ form.addEventListener("submit", async (event) => {
 resetBtn.addEventListener("click", () => {
   form.reset();
   errors.textContent = "";
+  getSubscriptionRows().slice(1).forEach((row) => row.remove());
+  updateRemoveButtons();
   clearFieldErrors();
   results.classList.add("empty");
   results.textContent = "Enter values and calculate to see options.";
@@ -332,4 +405,5 @@ resetBtn.addEventListener("click", () => {
   updateDealTypeUI();
 });
 
+updateRemoveButtons();
 updateDealTypeUI();

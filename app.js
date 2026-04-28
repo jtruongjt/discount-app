@@ -4,6 +4,7 @@ const dealTypeSelect = document.getElementById("dealType");
 const dealTypeHelp = document.getElementById("deal-type-help");
 const currentSubscriptionsField = document.getElementById("current-subscriptions-field");
 const currentSubscriptionsList = document.getElementById("current-subscriptions");
+const currentArrValue = document.getElementById("current-arr-value");
 const addSubscriptionBtn = document.getElementById("add-subscription-btn");
 const proposedLicensesInput = document.getElementById("proposedLicenses");
 const results = document.getElementById("results");
@@ -31,6 +32,10 @@ function calcIarr(currentArr, newArr) {
   return newArr - currentArr;
 }
 
+function getIarrStatusClass(iarr) {
+  return iarr <= 0.0001 ? "watch" : "positive";
+}
+
 function getRenewalRule(currentPpl, rules) {
   return rules.find((rule) => {
     const max = rule.maxCurrentPpl === null ? Number.POSITIVE_INFINITY : Number(rule.maxCurrentPpl);
@@ -50,6 +55,18 @@ function getCurrentSubscriptions() {
   }));
 }
 
+function calcCurrentArr(subscriptions) {
+  return subscriptions.reduce((total, subscription) => {
+    if (!Number.isFinite(subscription.currentPpl) || !Number.isFinite(subscription.currentLicenses)) return total;
+    if (subscription.currentPpl < 0 || subscription.currentLicenses < 1) return total;
+    return total + subscription.currentPpl * subscription.currentLicenses;
+  }, 0);
+}
+
+function updateCurrentArrPreview() {
+  currentArrValue.textContent = money(calcCurrentArr(getCurrentSubscriptions()));
+}
+
 function setSubscriptionError(row, key, message) {
   const input = row.querySelector(key === "currentPpl" ? "[data-current-ppl]" : "[data-current-licenses]");
   const errorEl = row.querySelector(key === "currentPpl" ? "[data-current-ppl-error]" : "[data-current-licenses-error]");
@@ -60,9 +77,11 @@ function setSubscriptionError(row, key, message) {
 
 function updateRemoveButtons() {
   const rows = getSubscriptionRows();
-  rows.forEach((row) => {
+  rows.forEach((row, index) => {
+    row.querySelector("[data-subscription-label]").textContent = `Subscription ${index + 1}`;
     row.querySelector("[data-remove-subscription]").hidden = rows.length === 1;
   });
+  updateCurrentArrPreview();
 }
 
 function createSubscriptionRow() {
@@ -70,17 +89,22 @@ function createSubscriptionRow() {
   row.className = "subscription-row";
   row.dataset.subscriptionRow = "";
   row.innerHTML = `
-    <label class="field">
-      <span>Current Contract PPL ($/year)</span>
-      <input type="number" data-current-ppl step="0.01" min="0" required />
-      <span class="field-error" data-current-ppl-error aria-live="polite"></span>
-    </label>
-    <label class="field">
-      <span>Current Licenses</span>
-      <input type="number" data-current-licenses step="1" min="1" required />
-      <span class="field-error" data-current-licenses-error aria-live="polite"></span>
-    </label>
-    <button type="button" class="subscription-remove secondary" data-remove-subscription>Remove</button>
+    <div class="subscription-row-header">
+      <strong data-subscription-label>Subscription</strong>
+      <button type="button" class="subscription-remove secondary" data-remove-subscription>Remove</button>
+    </div>
+    <div class="subscription-row-fields">
+      <label class="field">
+        <span>Current Contract PPL ($/year)</span>
+        <input type="number" data-current-ppl step="0.01" min="0" required />
+        <span class="field-error" data-current-ppl-error aria-live="polite"></span>
+      </label>
+      <label class="field">
+        <span>Current Licenses</span>
+        <input type="number" data-current-licenses step="1" min="1" required />
+        <span class="field-error" data-current-licenses-error aria-live="polite"></span>
+      </label>
+    </div>
   `;
   currentSubscriptionsList.appendChild(row);
   updateRemoveButtons();
@@ -158,7 +182,7 @@ function setBusyState(isBusy) {
   submitBtn.textContent = isBusy ? "Calculating..." : "Calculate Options";
 }
 
-function renderDiscountTable(rows, contextMessage, emptyMessage) {
+function renderDiscountTable(rows, emptyMessage) {
   if (rows.length === 0) {
     results.classList.remove("empty");
     results.innerHTML = `<div class="option"><h3>No compliant options</h3><p>${emptyMessage}</p></div>`;
@@ -171,23 +195,27 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
   const body = rows.map((row) => `
     <tr class="${recommendedRow && row.discountPct === recommendedRow.discountPct ? "is-recommended" : ""}">
       <td>${pct(row.discountPct)}</td>
-      <td>${money(row.finalPrice)}</td>
-      <td>${money(row.finalPrice / 12)}</td>
-      <td>${money(row.totalArr)}</td>
-      <td>${money(row.iarr)}</td>
+      <td class="num">${money(row.finalPrice)}</td>
+      <td class="num">${money(row.finalPrice / 12)}</td>
+      <td class="num">${money(row.totalArr)}</td>
+      <td class="num ${getIarrStatusClass(row.iarr)}">${money(row.iarr)}</td>
     </tr>
   `).join("");
 
   results.classList.remove("empty");
   results.innerHTML = `
     <div class="option recommended">
-      <h3>Recommended Option</h3>
-      <p class="meta">${contextMessage}</p>
-      <div class="summary-grid">
-        <div class="summary-stat">
-          <span class="summary-stat-label">Discount</span>
-          <span class="summary-stat-value">${pct(recommendedRow.discountPct)}</span>
+      <div class="recommended-header">
+        <div>
+          <span class="eyebrow">Recommended Option</span>
+          <h3>${pct(recommendedRow.discountPct)} Discount</h3>
         </div>
+        <div class="recommended-iarr ${getIarrStatusClass(recommendedRow.iarr)}">
+          <span class="summary-stat-label">IARR</span>
+          <span class="summary-stat-value">${money(recommendedRow.iarr)}</span>
+        </div>
+      </div>
+      <div class="summary-grid">
         <div class="summary-stat">
           <span class="summary-stat-label">Annual PPL</span>
           <span class="summary-stat-value">${money(recommendedRow.finalPrice)}</span>
@@ -200,12 +228,7 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
           <span class="summary-stat-label">Total ARR</span>
           <span class="summary-stat-value">${money(recommendedRow.totalArr)}</span>
         </div>
-        <div class="summary-stat">
-          <span class="summary-stat-label">IARR</span>
-          <span class="summary-stat-value">${money(recommendedRow.iarr)}</span>
-        </div>
       </div>
-      <p class="meta">Showing ${rows.length} compliant option${rows.length === 1 ? "" : "s"} in 5% increments. Highlighted row is the median option${rows.length % 2 === 0 ? " (lower middle of the two center rows)" : ""}.</p>
     </div>
     <div class="option">
       <h3>Discount Options</h3>
@@ -214,10 +237,10 @@ function renderDiscountTable(rows, contextMessage, emptyMessage) {
           <thead>
             <tr>
               <th>% Discount</th>
-              <th>Annual PPL</th>
-              <th>PPL/Month</th>
-              <th>Total ARR</th>
-              <th>IARR</th>
+              <th class="num">Annual PPL</th>
+              <th class="num">PPL/Month</th>
+              <th class="num">Total ARR</th>
+              <th class="num">IARR</th>
             </tr>
           </thead>
           <tbody>${body}</tbody>
@@ -269,7 +292,7 @@ function updateDealTypeUI() {
   const isRenewal = dealTypeSelect.value === "renewal";
   dealInputsTitle.textContent = isRenewal ? "Amendment Inputs" : "Net New Inputs";
   dealTypeHelp.textContent = isRenewal
-    ? "Provide all current subscriptions to protect IARR for an amendment."
+    ? "Provide all current subscriptions to protect IARR for an amendment. Subscription 1 sets the discount floor."
     : "Net New pricing uses proposed licenses only. Amendment-only fields are hidden.";
   currentSubscriptionsField.classList.toggle("hidden", !isRenewal);
   currentSubscriptionsList.querySelectorAll("input").forEach((input) => {
@@ -287,6 +310,7 @@ dealTypeSelect.addEventListener("change", updateDealTypeUI);
 form.addEventListener("input", () => {
   errors.textContent = "";
   clearFieldErrors();
+  updateCurrentArrPreview();
 });
 addSubscriptionBtn.addEventListener("click", () => {
   createSubscriptionRow().querySelector("[data-current-ppl]").focus();
@@ -335,18 +359,17 @@ form.addEventListener("submit", async (event) => {
     }
 
     if (input.dealType === "renewal") {
-      const matchedRules = input.currentSubscriptions.map((subscription) => getRenewalRule(subscription.currentPpl, config.renewalRules));
-      if (matchedRules.some((rule) => !rule)) {
-        errors.textContent = "No amendment rule matches one or more current subscription PPL values.";
+      const primarySubscription = input.currentSubscriptions[0];
+      const rule = getRenewalRule(primarySubscription.currentPpl, config.renewalRules);
+      if (!rule) {
+        errors.textContent = "No amendment rule matches Subscription 1 current PPL.";
         return;
       }
 
       const basePrice = Number(config.netNewListPrice);
-      const floorPrice = Math.max(...matchedRules.map((rule) => Number(rule.lowestAllowedPrice)));
+      const floorPrice = Number(rule.lowestAllowedPrice);
       const maxDiscountByFloor = (1 - (floorPrice / basePrice)) * 100;
-      const currentArr = input.currentSubscriptions.reduce((total, subscription) => (
-        total + subscription.currentPpl * subscription.currentLicenses
-      ), 0);
+      const currentArr = calcCurrentArr(input.currentSubscriptions);
 
       const rows = buildDiscountRows(
         basePrice,
@@ -358,7 +381,6 @@ form.addEventListener("submit", async (event) => {
 
       renderDiscountTable(
         rows,
-        `Current ARR is ${money(currentArr)} across ${input.currentSubscriptions.length} subscription${input.currentSubscriptions.length === 1 ? "" : "s"}. Amendment rule floor is ${money(floorPrice)} against list price ${money(basePrice)}.`,
         "No discount steps are compliant for this amendment scenario."
       );
       return;
@@ -385,7 +407,6 @@ form.addEventListener("submit", async (event) => {
 
     renderDiscountTable(
       rows,
-      `Net New tier allows up to ${pct(maxDiscount)} discount from list price ${money(basePrice)} (floor ${money(floorPrice)}).`,
       "No discount steps are compliant for this Net New scenario."
     );
   } finally {
@@ -406,4 +427,5 @@ resetBtn.addEventListener("click", () => {
 });
 
 updateRemoveButtons();
+updateCurrentArrPreview();
 updateDealTypeUI();

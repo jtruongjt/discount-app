@@ -38,23 +38,33 @@
             <h3>Current Subscriptions</h3>
             <button type="button" id="add-subscription-btn" class="secondary">Add Subscription</button>
           </div>
+          <p class="subscription-callout">Subscription 1 sets the amendment discount floor. All subscriptions are included in current ARR and IARR.</p>
           <div id="current-subscriptions" class="subscription-list">
             <div class="subscription-row" data-subscription-row>
-              <label class="field">
-                <span>Current Contract PPL ($/year)</span>
-                <input type="number" id="currentPpl" data-current-ppl step="0.01" min="0" required />
-                <span class="field-error" data-current-ppl-error aria-live="polite"></span>
-              </label>
-              <label class="field">
-                <span>Current Licenses</span>
-                <input type="number" id="currentLicenses" data-current-licenses step="1" min="1" required />
-                <span class="field-error" data-current-licenses-error aria-live="polite"></span>
-              </label>
-              <button type="button" class="subscription-remove secondary" data-remove-subscription hidden>Remove</button>
+              <div class="subscription-row-header">
+                <strong data-subscription-label>Subscription 1</strong>
+                <button type="button" class="subscription-remove secondary" data-remove-subscription hidden>Remove</button>
+              </div>
+              <div class="subscription-row-fields">
+                <label class="field">
+                  <span>Current Contract PPL ($/year)</span>
+                  <input type="number" id="currentPpl" data-current-ppl step="0.01" min="0" required />
+                  <span class="field-error" data-current-ppl-error aria-live="polite"></span>
+                </label>
+                <label class="field">
+                  <span>Current Licenses</span>
+                  <input type="number" id="currentLicenses" data-current-licenses step="1" min="1" required />
+                  <span class="field-error" data-current-licenses-error aria-live="polite"></span>
+                </label>
+              </div>
             </div>
           </div>
+          <div class="current-arr-preview" id="current-arr-preview" aria-live="polite">
+            <span class="summary-stat-label">Current ARR Preview</span>
+            <strong id="current-arr-value">$0.00</strong>
+          </div>
         </div>
-        <p class="deal-type-note" id="deal-type-help">Provide all current subscriptions to protect IARR for an amendment.</p>
+        <p class="deal-type-note" id="deal-type-help">Provide all current subscriptions to protect IARR for an amendment. Subscription 1 sets the discount floor.</p>
 
         <div class="actions">
           <button type="submit">Calculate Options</button>
@@ -71,7 +81,7 @@
     </section>
   </main>
 
-  <script src="config-store.js"></script>
-  <script src="app.js"></script>
+  <script src="config-store.js?v=20260428"></script>
+  <script src="app.js?v=20260428"></script>
 </body>
 </html>
